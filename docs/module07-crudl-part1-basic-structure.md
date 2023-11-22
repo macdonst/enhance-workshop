@@ -1,5 +1,5 @@
 ---
-title: "Module 7: CRUDL Part 1"
+title: "Module 7: CRUDL"
 layout: default
 ---
 
@@ -94,56 +94,10 @@ export default SubmitButton
 
 But to save you lots of copy paste we have done that for you already.
 
-Lets make a page with a form to create a new link at `/app/pages/links.mjs`:
+Lets look at page that lists all the links and has a form to create a new link at `/app/pages/links.mjs`:
 
 ```javascript
 // /app/pages/links.mjs
-export default function Html({ html, state }) {
-  return html`
-    <enhance-form
-      action="/links"
-      method="POST">
-      <enhance-text-input label="Link Text" type="text" id="text" name="text"  ></enhance-text-input>
-      <enhance-text-input label="Link Url" type="text" id="url" name="url"  ></enhance-text-input>
-      <enhance-checkbox label="Published" type="checkbox" id="published" name="published"></enhance-checkbox>
-      <enhance-submit-button style="float: right"><span slot="label">Save</span></enhance-submit-button>
-    </enhance-form>
-  `
-}
-```
-
-- Now that we have a form to create new links we need a place to POST them.
-- Next make an API route at `/app/api/links.mjs`
-
-```javascript
-// /app/api/links.mjs
-import { upsertLink } from '../models/links.mjs'
-
-export async function post (req) {
-  await upsertLink(req.body)
-  return {
-    location: '/links'
-  }
-}
-```
-
-This will:
-
-1. Take the form data received and store it in the database
-2. Redirect back to `/links` when done
-
-Notice we have no validation yet. We will add that soon. But first we need a few more tools.
-Lets finish the loop so that we can see the links we created.
-
-## List
-
-We want to view the list the links we've created. Instead of creating a new route. We will provide the UI for viewing and creating new links in the same page.
-
-Add the list at the top of `/app/pages/links.mjs`
-
-
-```javascript
-// /app/pages/links
 export default function Links({ html, state }) {
   const { store } = state
   let links = store.links || []
@@ -183,28 +137,14 @@ export default function Links({ html, state }) {
 </enhance-page-container>
   `
 }
-
 ```
 
-We put the create form inside a details/summary to clean up the page slightly
-Now we need to make sure that this page has the list of links to display.
-
-While we are here we added buttons to Update and Delete from the list view. We will add API routes for those soon.
-
-- Now we need to pass the data for the links to the page to display.
-- For that add the following to `/app/api/links.mjs`
-
+- Now that we have a form to create new links we need a place to POST them.
+- Next make an API route at `/app/api/links.mjs`
 
 ```javascript
 // /app/api/links.mjs
-import { getLinks, upsertLink } from '../models/links.mjs'
-
-export async function get (req) {
-  const links = await getLinks()
-  return {
-    json: { links }
-  }
-}
+import { upsertLink } from '../models/links.mjs'
 
 export async function post (req) {
   await upsertLink(req.body)
@@ -214,16 +154,51 @@ export async function post (req) {
 }
 ```
 
+This will:
+
+1. Take the form data received and store it in the database
+2. Redirect back to `/links` when done
+
+Lets finish the loop so that we can see the links we created.
+
+## List
+
+We want to view the list the links we've created. Instead of creating a new route. We will provide the UI for viewing and creating new links in the same page.
+
+- Now we need to pass the data for the links to the page to display.
+- For that we'll look at the `get` function in `/app/api/links.mjs`
+
+
+```javascript
+// /app/api/links.mjs
+import { getLinks, upsertLink, validate } from '../models/links.mjs'
+
+export async function get (req) {
+  const links = await getLinks()
+  return {
+    json: { links }
+  }
+}
+
+export async function post (req) {
+  let { problems, link } = await validate.create(req)
+
+  await upsertLink(link)
+  return {
+    location: '/links'
+  }
+}
+```
+
 ## Update
 
-We have a button to update links from the list view,
-but we need to add the page and API to support that feature.
+We have a button to update links from the list view, but we need to add the page and API to support that feature.
 
 First lets start with the update page and form.
 This will be similar to the create form except with the addition of a key.
 We will also need to pre-populate the form with the previous values so that only the updated values change.
 
-Copy the code below into `/app/pages/links/$id.mjs`.
+Look at the code in `/app/pages/links/$id.mjs`.
 
 ```javascript
 export default function UpdateLink({ html, state }) {
@@ -244,13 +219,11 @@ export default function UpdateLink({ html, state }) {
 </enhance-form>
 </enhance-page-container>`
 }
-
 ```
 
 Now lets pass the initial values to the form that will be updated.
-We will also add the POST handler to update the form as well.
 
-Copy the following code to the API route at /app/api/links/$id.mjs
+Look at the following code in the API route at `/app/api/links/$id.mjs`
 
 ```javascript
 import { getLink, upsertLink } from '../../models/links.mjs'
@@ -281,7 +254,7 @@ Notice the id comes from the path parameter ($id) rather than from the form inpu
 We already added a form in the List view that will POST to delete an object.
 We just need to add the API route that handles that POST request.
 
-- Add the following code to the `/app/api/links/$id/delete.mjs` file.
+- Look at the following code in the `/app/api/links/$id/delete.mjs` file.
 
 ```javascript
 // /app/api/links/$id/delete
@@ -295,10 +268,9 @@ export async function post (req) {
     location: '/links'
   }
 }
-
 ```
 
-We now have working CRUDL routes! For a toy app this might be enough, but we are missing some critical pieces. There is no validation of the data for one thing. Lets fix that.
+We now have working CRUDL routes! For a toy app this might be enough, but we are missing some critical pieces. There is no authentication of the user for one thing. Lets fix that.
 
 The thing we need for that is sessions.
 

@@ -314,7 +314,7 @@ export default function Experience ({ html, state }) {
 Now create the résumé container in the elements folder.
 
 ```javascript
-// /app/elements/resume-container.mjs
+// /app/elements/resume/container.mjs
 export default function ResumeContainer({ html }) {
   return html`
     <style>
@@ -377,6 +377,7 @@ export default function Head() {
 
 
       <style>
+        body { background: white; }
         @font-face {
           font-family: "HK Grotesk";
           font-weight: 300;
@@ -560,8 +561,6 @@ We also add the path to the data store so that any other elements can access it 
 
 
 ```javascript
-
-
 import titlesByPath from './lib/titles-by-path.mjs'
 import { getStyles }  from '@enhance/arc-plugin-styles'
 
@@ -634,7 +633,7 @@ export default function Head(state) {
 ```
 
 
-Now we have data flowing thougout our site.
+Now we have data flowing throughout our site.
 At this point the source of the data is mostly static, but the same tools can be used to pass any kind of data around.
 
 

@@ -49,76 +49,11 @@ When combined, HttpOnly and secure cookies provide a powerful defense against se
 By keeping session data away from client-side scripts and encrypting it during transit, you can protect your users from a wide range of security threats.
 By taking the time to implement these security measures correctly, you'll be able to rest assured that your users' data is well-protected.
 
-
-## Implementing a session with set-cookie
-
-Lets look at how we might build a session out of cookies for our app.
-
-Add an API route at `/app/api/cookie.mjs` with the following:
-
-```javascript
-// filename="app/api/cookie.mjs
-export async function get (req) {
- return {
-   headers: {
-     'set-cookie': `chocolate-chip="yummy"; Max-Age=60; Secure; HttpOnly`
-   },
-   json: { cookies: req.cookies }
- }
-}
-```
-
-Now to get a confirmation that our cookie is set add the following page at `/app/pages/cookie.mjs`
-
-
-```javascript
-// app/pages/cookie.mjs
-export default function cookie ({html, state}) {
-
- return html`
- <pre>${JSON.stringify(state.store, null, 2)}</pre>`
-}
-```
-
-When you first hit the `/cookie` route the server will send a cookie to the user.
-The first time through it is sent to the browser.
-Then when you refresh the page it is sent back with that request and it show up in the `req.cookies` and is displayed on the page.
-
 ## Enhance Sessions
 
 Enhance has session functionality built-in using `set-cookie` behind the scenes. That code is open source, has been audited by thousands, and has more affordances for better security.
 
-Lets check it out.
-
-Add the following lines to the same `/app/api/cookies.mjs` file:
-
-```javascript
-// filename="app/api/cookie.mjs
-export async function get (req) {
- return {
-   session: { peanutbutter: "delicious"},
-   headers: {
-     'set-cookie': `chocolate-chip="yummy"; Max-Age=60; Secure; HttpOnly`
-   },
-   json: { cookies: req.cookies, session: req.session}
- }
-}
-```
-
-Again the first request will set the cookies and to see what was set you refresh the page.
-
-We started with this simple example to show that there is no real magic in sessions. You could reimplement it yourself on every app and every route but that would be a lot of boilerplate code you can avoid writing by using built-in sessions.
-
-While our session cookie is both `Secure` and `HttpOnly` you probably noticed the values are still in plain text while the built in session is not readable in the cookie itself.
-Enhance sessions are further locked down with two strategies: signing and encrypting the cookie value for ‘stateless’ sessions and/or using database backed sessions and only storing a UUID in the cookie itself.
-Both techniques work fine, and even better can be combined.
-
-Database sessions are nice because you can control invalidation and aren’t limited by the size of cookie.
-Stateless sessions are nice because they don’t involve more moving parts like a database.
-
-Enhance, supports both.
-
-# Implementing a basic login flow on top of session
+## Implementing a basic login flow on top of session
 
 Getting back to the portfolio we are building one of the things that we need sessions for is authentication.
 We want any guests to be able to see the portfolio, résumé, and link tree pages, but we don't want them to be able to create new links.
@@ -283,23 +218,55 @@ We can rewrite the handler as shown below to share the authentication logic.
 
 ```javascript
 // /app/api/links.mjs
-import { getLinks, upsertLink } from '../models/links.mjs'
+import { getLinks, upsertLink, validate } from '../models/links.mjs'
 import { checkAuth } from '../lib/check-auth.mjs'
 
 export const get = [checkAuth,listLinks]
 export const post = [checkAuth,postLinks]
 
-export async function listLinks (req) {
+async function listLinks (req) {
   const links = await getLinks()
+  if (req.session.problems) {
+    let { problems, link, ...session } = req.session
+    return {
+      session,
+      json: { problems, links, link }
+    }
+  }
+
   return {
     json: { links }
   }
 }
 
-export async function postLinks (req) {
-  await upsertLink(req.body)
-  return {
-    location: '/links'
+async function postLinks (req) {
+  const session = req.session
+  // Validate
+  let { problems, link } = await validate.create(req)
+  if (problems) {
+    return {
+      session: { ...session, problems, link },
+      json: { problems, link },
+      location: '/links'
+    }
+  }
+
+  // eslint-disable-next-line no-unused-vars
+  let { problems: removedProblems, link: removed, ...newSession } = session
+  try {
+    const result = await upsertLink(link)
+    return {
+      session: newSession,
+      json: { link: result },
+      location: '/links'
+    }
+  }
+  catch (err) {
+    return {
+      session: { ...newSession, error: err.message },
+      json: { error: err.message },
+      location: '/links'
+    }
   }
 }
 ```

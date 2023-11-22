@@ -12,9 +12,9 @@ layout: default
 * [Module 04: API Design](./module04-api-design)
 * [Module 05: Static Assets](./module05-static-assets)
 * [Module 06: Data Access](./module06-data-access)
-* [Module 07: CRUDL Part 1](./module07-crudl-part1-basic-structure)
+* [Module 07: CRUDL](./module07-crudl-part1-basic-structure)
 * [Module 08: Sessions and Authentication](./module08-sessions-and-simple-authentication)
-* [Module 09: CRUDL Part 2: Validation](./module09-crudl-part2-validation)
+* SKIPPING ~~[Module 09: CRUDL Part 2: Validation](./module09-crudl-part2-validation)~~
 * [Module 10: Progressive Enhancement](./module10-progressive-enhancement)
 * [Module 11: Putting it all together](./module11-putting-it-all-together)
 * [Module 12: Deploy and DNS](./module12-deploy-dns)
